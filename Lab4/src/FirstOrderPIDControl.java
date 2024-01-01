@@ -7,16 +7,14 @@ import core.FuzzyPetriLogic.PetriNet.FuzzyPetriNet;
 import core.FuzzyPetriLogic.PetriNet.Recorders.FullRecorder;
 import core.FuzzyPetriLogic.Tables.OneXOneTable;
 import core.FuzzyPetriLogic.Tables.OneXTwoTable;
+import core.FuzzyPetriLogic.Tables.TwoXOneTable;
+import core.FuzzyPetriLogic.Tables.TwoXTwoTable;
 import core.TableParser;
 
 import java.util.HashMap;
 import java.util.function.Consumer;
 
 public class FirstOrderPIDControl {
-    /*
-     * This example implements P[k] = a*e[k] + b*e[k-1] + P[k-1]
-     */
-
     String reader = "" + //
             "{[<NL><NM><ZR><PM><PL>]" + //
             " [<NL><NM><ZR><PM><PL>]" + //
@@ -79,7 +77,7 @@ public class FirstOrderPIDControl {
         int p1 = net.addPlace();
         net.addArcFromTransitionToPlace(t0, p1);
         int p2InpSys = net.addInputPlace();
-        int t1 = net.addTransition(0, parser.parseTable(reader));
+        int t1 = net.addTransition(0, TwoXTwoTable.defaultTable());
         net.addArcFromPlaceToTransition(p1, t1, 1.0);
         net.addArcFromPlaceToTransition(p2InpSys, t1, 1.0);
         int p3 = net.addPlace();
@@ -93,30 +91,35 @@ public class FirstOrderPIDControl {
         net.addArcFromTransitionToPlace(t2, p5);
         int p6 = net.addPlace();
         net.addArcFromTransitionToPlace(t2, p6);
-        int t3 = net.addTransition(0, parser.parseTable(adder));//
-
-        // PID modifications
+        int t3 = net.addTransition(0, parser.parseTable(reader));//
+        net.addArcFromTransitionToPlace(t1, p3);
         int t4delay = net.addTransition(1,
                 OneXTwoTable.defaultTable());
         net.addArcFromPlaceToTransition(p6, t4delay, 1.0);
-        int p12 = net.addPlace();
-        net.addArcFromTransitionToPlace(t4delay, p12);
-        int t8delay = net.addTransition(1, OneXOneTable.defaultTable());
-        net.addArcFromPlaceToTransition(p12, t8delay, 1.0);
-        int p13Mem = net.addPlace();
-        net.addArcFromTransitionToPlace(t8delay, p13Mem);
-        net.setInitialMarkingForPlace(p13Mem, FuzzyToken.zeroToken());
-
         int p7Mem = net.addPlace();
         net.setInitialMarkingForPlace(p7Mem, FuzzyToken.zeroToken());
         net.addArcFromTransitionToPlace(t4delay, p7Mem);
-        int t9 = net.addTransition(0, parser.parseTwoXOneTable(adder));
+
+        // Modifications for PID
+        int p12Mem = net.addPlace();
+        net.setInitialMarkingForPlace(p12Mem, FuzzyToken.zeroToken());
+        net.addArcFromTransitionToPlace(t4delay, p12Mem);
+
+        int t8delay = net.addTransition(1, OneXOneTable.defaultTable());
+        net.addArcFromPlaceToTransition(p12Mem, t8delay, 1);
+
+        int p13Mem = net.addPlace();
+        net.setInitialMarkingForPlace(p13Mem, FuzzyToken.zeroToken());
+        net.addArcFromTransitionToPlace(t8delay, p13Mem);
+
+        int t9 = net.addTransition(0, parser.parseTable(adder));
         net.addArcFromPlaceToTransition(p13Mem, t9, 0.2);
-        net.addArcFromPlaceToTransition(p7Mem, t9, 0);
+        net.addArcFromPlaceToTransition(p7Mem, t9, 1);
 
         int p14 = net.addPlace();
         net.addArcFromTransitionToPlace(t9, p14);
         net.addArcFromPlaceToTransition(p14, t3, 1);
+        //------------------------
 
         net.addArcFromPlaceToTransition(p5, t3, 0.8);
         int p8 = net.addPlace();

@@ -33,6 +33,13 @@ public class HeaterTankControllerComponent {
             + " [<NM,NM><ZR,ZR><PM,PM><PL,PL><PL,PL>]"//
             + " [<ZR,ZR><PM,PM><PL,PL><PL,PL><PL,PL>]}";
 
+    String adder = String.join("\n", //
+            "{[<NL><NL><NL><NM><ZR>]", //
+            " [<NL><NL><NM><ZR><PM>]", //
+            " [<NL><NM><ZR><PM><PL>]", //
+            " [<NM><ZR><PM><PL><PL>]", //
+            " [<ZR><PM><PL><PL><PL>]}");
+
     private AsyncronRunnableExecutor execcutor;
     private FullRecorder rec;
     private FuzzyDriver tankWaterTemperatureDriver;
@@ -42,6 +49,9 @@ public class HeaterTankControllerComponent {
 
     public HeaterTankControllerComponent(Plant plant, long simPeriod) {
 // constructing the Petri net for the HTC component
+        int w1 = 1;
+        int w2 = 1;
+
         TableParser parser = new TableParser();
         net = new FuzzyPetriNet();
         int p0 = net.addPlace();
@@ -54,12 +64,27 @@ public class HeaterTankControllerComponent {
         int p2 = net.addPlace();
         net.addArcFromTransitionToPlace(tr0Reader, p2);
         p3SysInp = net.addInputPlace();
-// transition t1 - differentiator
+        // transition t1 - differentiator
         int tr1Diff = net.addTransition(0, parser.parseTwoXTwoTable(doubleChannelDifferentiator));
         net.addArcFromPlaceToTransition(p2, tr1Diff, 1.0);
         net.addArcFromPlaceToTransition(p3SysInp, tr1Diff, 1.0);
         int p4 = net.addPlace();
         net.addArcFromTransitionToPlace(tr1Diff, p4);
+
+        // TRANSITION t6 with delay
+        int t6 = net.addTransition(1, OneXOneTable.defaultTable());
+        net.addArcFromPlaceToTransition(p4, t6, 1);
+        int p9 = net.addPlace();
+        net.addArcFromTransitionToPlace(t6, p9);
+        net.setInitialMarkingForPlace(p9, FuzzyToken.zeroToken());
+
+        // TRANSITION t7 Adder
+        int tr7Add = net.addTransition(0, parser.parseTable(adder));
+        net.addArcFromPlaceToTransition(p4, tr7Add, w1);
+        net.addArcFromPlaceToTransition(p9, tr7Add, w2);
+        int p10 = net.addPlace();
+        net.addArcFromTransitionToPlace(tr7Add, p10);
+
 // transition t2 exit
         int tr2Out = net.addOuputTransition(OneXOneTable.defaultTable());
         int p5 = net.addPlace();
@@ -72,7 +97,7 @@ public class HeaterTankControllerComponent {
         net.setInitialMarkingForPlace(p6, FuzzyToken.zeroToken());
 // transition t4 adder
         int t4Adder = net.addTransition(0, parser.parseTwoXTwoTable(historyMerger));
-        net.addArcFromPlaceToTransition(p4, t4Adder, 1.2);
+        net.addArcFromPlaceToTransition(p10, t4Adder, 1);
         net.addArcFromPlaceToTransition(p6, t4Adder, 1.0);
         int p7 = net.addPlace();
         net.addArcFromTransitionToPlace(t4Adder, p7);

@@ -13,10 +13,6 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 public class FirstOrderPIControl {
-    /*
-     * This example implements P[k] = a*e[k] + b*e[k-1] + P[k-1]
-     */
-
     String reader = "" + //
             "{[<NL><NM><ZR><PM><PL>]" + //
             " [<NL><NM><ZR><PM><PL>]" + //
